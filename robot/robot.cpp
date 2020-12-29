@@ -275,13 +275,13 @@ double robot::dist()
   }
 }
 
-void robot::motor(int spd1, int spd2, int spd3)
+void robot::motor(double spd1, double spd2, double spd3)
 {
   int offtime = 0;
   static int mt_state[3];
   double mt_power[6];
 
-  int spd[3] = {spd1, spd2, spd3};
+  double spd[3] = {spd1, spd2, spd3};
   for (int i = 0; i < 3; i++)
   {
     if (spd[i] > 0)
@@ -312,6 +312,7 @@ void robot::motor(int spd1, int spd2, int spd3)
       mt_state[i] = 0;
     }
   }
+  /*
   if (offtime == 1)
   {
     digitalWrite(mt1cw, LOW);
@@ -322,7 +323,7 @@ void robot::motor(int spd1, int spd2, int spd3)
     digitalWrite(mt3ccw, LOW);
     delayMicroseconds(100);
   }
-
+  */
   TCCR0A = 0b10100011;
   TCCR0B = 0b00000011;
   TCCR1A = 0b10100010;
@@ -339,7 +340,7 @@ void robot::motor(int spd1, int spd2, int spd3)
   OCR0A = (unsigned int)(mt_power[5]); //6  mt3ccw 980hz
 }
 
-void robot::getLine(int line[4]){
+void robot::getLine(double line[4]){
   Wire.requestFrom(8, 4);
   int i=0;
   while (Wire.available()) { 
@@ -348,7 +349,7 @@ void robot::getLine(int line[4]){
   }
 }
 
-void robot::getIr(int ir[4])
+void robot::getIr(double ir[4])
 { 
   for (int i = 0; i < 500; i++)
   {

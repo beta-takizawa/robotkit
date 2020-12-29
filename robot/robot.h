@@ -10,9 +10,9 @@ class robot{
         int roundOff(float numerator, float denominator);
         int irControl(int framedata,int *forward,int *right,int *back,int *left,int *turn);
         double dist();
-        void motor(int spd1,int spd2,int spd3);
-        void getIr(int ir[4]);
-        void getLine(int line[4]);
+        void motor(double spd1,double spd2,double spd3);
+        void getIr(double ir[4]);
+        void getLine(double line[4]);
         void initialize(void);
     private:
         unsigned long now1 = 0;
