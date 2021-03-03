@@ -256,6 +256,9 @@ int robot::roundOff(float numerator, float denominator)
 }
 //ここまで
 
+
+
+
 double robot::dist()
 {
   digitalWrite(trig, LOW);

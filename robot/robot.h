@@ -9,6 +9,7 @@ class robot{
         void getFramedata();
         int roundOff(float numerator, float denominator);
         int irControl(int framedata,int *forward,int *right,int *back,int *left,int *turn);
+        //ここまで赤外線ラジコン用
         double dist();
         void motor(double spd1,double spd2,double spd3);
         void getIr(double ir[4]);
