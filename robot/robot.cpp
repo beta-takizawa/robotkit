@@ -8,8 +8,8 @@
 #define mt2ccw 9
 #define mt3cw 11
 #define mt3ccw 6
-#define cw 1
-#define ccw 2
+#define cw 1  //not pin number
+#define ccw 2 //not pin number
 #define echo 12
 #define trig 13
 #define linePin 1
@@ -20,7 +20,7 @@
 #define LED 4
 #define framenum 5
 robot::robot() {}
-
+/*
 //以下は赤外線リモコン関連のもの
 void robot::getIRinfo()
 {
@@ -255,28 +255,7 @@ int robot::roundOff(float numerator, float denominator)
   return integer;
 }
 //ここまで
-
-
-
-
-double robot::dist()
-{
-  digitalWrite(trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig, LOW);
-  unsigned long durationMS = pulseIn(echo, HIGH);
-  double distance = durationMS / 2.0 * 0.034;
-  if (distance == 2 || distance > 400)
-  {
-    return -1.0;
-  }
-  else
-  {
-    return distance;
-  }
-}
+*/
 
 void robot::motor(double spd1, double spd2, double spd3)
 {
@@ -337,42 +316,89 @@ void robot::motor(double spd1, double spd2, double spd3)
 
   OCR2B = (unsigned int)(mt_power[0]); //3  mt1cw  980hz
   OCR0B = (unsigned int)(mt_power[1]); //5  mt1ccw 980hz
-  OCR1A = (unsigned int)(mt_power[3]); //(1020*(mt_power[3]/255));//10  mt2cw   490hz 
+  OCR1A = (unsigned int)(mt_power[3]); //(1020*(mt_power[3]/255));//10  mt2cw   490hz
   OCR1B = (unsigned int)(mt_power[2]); //(1020*(mt_power[2]/255));//9   mt2ccw  490hz
   OCR2A = (unsigned int)(mt_power[4]); //11 mt3cw  980hz
   OCR0A = (unsigned int)(mt_power[5]); //6  mt3ccw 980hz
 }
 
-void robot::getLine(double line[4]){
-  Wire.requestFrom(8, 4);
-  int i=0;
-  while (Wire.available()) { 
-    line[i] = Wire.read(); 
-    i++;
+double robot::dist()
+{
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  unsigned long durationMS = pulseIn(echo, HIGH);
+  double distance = durationMS / 2.0 * 0.034;
+  if (distance == 2 || distance > 400)
+  {
+    return -1.0;
+  }
+  else
+  {
+    return distance;
   }
 }
 
-void robot::getIr(double ir[4])
-{ 
-  for (int i = 0; i < 500; i++)
+int robot::getLine(int num)
+{
+  Wire.requestFrom(8, 4);
+  int line[4];
+  int i = 0;
+  while (Wire.available())
   {
-    if (digitalRead(IR1) == LOW)
-    {
-      ir[0]++;
-    }
-    if (digitalRead(IR2) == LOW)
-    {
-      ir[1]++;
-    }
-    if (digitalRead(IR3) == LOW)
-    {
-      ir[2]++;
-    }
-    if (digitalRead(IR4) == LOW)
-    {
-      ir[3]++;
-    }
+    line[i] = Wire.read();
+    i++;
   }
+  return line[num - 1];
+}
+
+int robot::getIr(int num)
+{
+  int value = 0;
+  switch (num)
+  {
+  case 1:
+    for (int i = 0; i < 500; i++)
+    {
+      if (digitalRead(IR1) == LOW)
+      {
+        value++;
+      }
+    }
+    break;
+  case 2:
+    for (int i = 0; i < 500; i++)
+    {
+      if (digitalRead(IR2) == LOW)
+      {
+        value++;
+      }
+    }
+    break;
+  case 3:
+    for (int i = 0; i < 500; i++)
+    {
+      if (digitalRead(IR3) == LOW)
+      {
+        value++;
+      }
+    }
+    break;
+  case 4:
+    for (int i = 0; i < 500; i++)
+    {
+      if (digitalRead(IR4) == LOW)
+      {
+        value++;
+      }
+    }
+    break;
+  default:
+    value = 0;
+  }
+  return value
 }
 
 void robot::initialize(void)
@@ -394,7 +420,5 @@ void robot::initialize(void)
   digitalWrite(mt2ccw, LOW);
   digitalWrite(mt3cw, LOW);
   digitalWrite(mt3ccw, LOW);
-  Serial.begin(115200);
-  Wire.begin();        // join i2c bus (address optional for master)
-
+  Wire.begin();
 }
