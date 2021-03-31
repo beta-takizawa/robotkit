@@ -19,7 +19,11 @@
 #define IR4 14
 #define LED 4
 #define framenum 5
-robot::robot() {}
+
+robot::robot()
+{
+  initialize();
+}
 /*
 //以下は赤外線リモコン関連のもの
 void robot::getIRinfo()
@@ -356,53 +360,69 @@ int robot::getLine(int num)
 
 int robot::getIr(int num)
 {
-  int value = 0;
   switch (num)
   {
   case 1:
-    for (int i = 0; i < 500; i++)
-    {
-      if (digitalRead(IR1) == LOW)
-      {
-        value++;
-      }
-    }
+    return ir1;
     break;
   case 2:
-    for (int i = 0; i < 500; i++)
-    {
-      if (digitalRead(IR2) == LOW)
-      {
-        value++;
-      }
-    }
+    return ir2;
     break;
   case 3:
-    for (int i = 0; i < 500; i++)
-    {
-      if (digitalRead(IR3) == LOW)
-      {
-        value++;
-      }
-    }
+    return ir3;
     break;
   case 4:
-    for (int i = 0; i < 500; i++)
-    {
-      if (digitalRead(IR4) == LOW)
-      {
-        value++;
-      }
-    }
+    return ir4;
     break;
   default:
-    value = 0;
+    return 0;
+    break;
   }
-  return value
 }
+
+void robot::irUpdate()
+{
+  for (int i = 0; i < 500; i++)
+  {
+    if (digitalRead(IR1) == LOW)
+    {
+      ir1++;
+    }
+  }
+  for (int i = 0; i < 500; i++)
+  {
+    if (digitalRead(IR2) == LOW)
+    {
+      ir2++;
+    }
+  }
+  for (int i = 0; i < 500; i++)
+  {
+    if (digitalRead(IR3) == LOW)
+    {
+      ir3++;
+    }
+  }
+
+  for (int i = 0; i < 500; i++)
+  {
+    if (digitalRead(IR4) == LOW)
+    {
+      ir4++;
+    }
+  }
+}
+/*
+static void robot::interrupt()
+{
+  motor(0, 0, 0);
+  digitalWrite(LED, LOW);
+  //initComp = true;
+}*/
 
 void robot::initialize(void)
 {
+  //attachInterrupt(0, interrupt, LOW); 
   pinMode(LED, OUTPUT);
   pinMode(IR1, INPUT);
   pinMode(IR2, INPUT);
@@ -421,4 +441,5 @@ void robot::initialize(void)
   digitalWrite(mt3cw, LOW);
   digitalWrite(mt3ccw, LOW);
   Wire.begin();
+  Serial.begin(9600);
 }

@@ -15,7 +15,9 @@ public:
     void motor(double spd1, double spd2, double spd3);
     int getIr(int num);
     int getLine(int num);
+    void irUpdate();
     void initialize(void);
+    //static void interrupt();
 
 private:
     //unsigned long now1 = 0;
@@ -23,5 +25,9 @@ private:
     //unsigned long last = 0;
     //unsigned long leader = 0;
     //int frame_num = 0;
+    int _ir1;
+    int _ir2;
+    int _ir3;
+    int _ir4;
 };
 #endif
