@@ -4,7 +4,7 @@
 class robot
 {
 public:
-    robot();
+    robot(int minX, int maxX, int minY, int maxY);
     //void getIRinfo();
     //void getIRleader();
     //void getFramedata();
@@ -16,8 +16,9 @@ public:
     int getIr(int num);
     int getLine(int num);
     void irUpdate();
-    void initialize(void);
-    //static void interrupt();
+    double getFlontAzim();
+    double getAzim();
+    void initialize();
 
 private:
     //unsigned long now1 = 0;
@@ -25,9 +26,14 @@ private:
     //unsigned long last = 0;
     //unsigned long leader = 0;
     //int frame_num = 0;
+    double flontDeg = 0;
     int _ir1;
     int _ir2;
     int _ir3;
     int _ir4;
+    int _maxX;
+    int _minX;
+    int _maxY;
+    int _minY;
 };
 #endif

@@ -1,6 +1,7 @@
 #include "robot.h"
 #include <avr/io.h>
 #include <Wire.h>
+#include <QMC5883LCompass.h>
 
 #define mt1cw 3
 #define mt1ccw 5
@@ -19,251 +20,20 @@
 #define IR4 14
 #define LED 4
 #define framenum 5
+boolean initComp = false;
+QMC5883LCompass compass;
 
-robot::robot()
+robot::robot(int minX, int maxX, int minY, int maxY)
 {
-  initialize();
+  _maxX = maxX;
+  _minX = minX;
+  _maxY = maxY;
+  _minY = minY;
 }
-/*
-//以下は赤外線リモコン関連のもの
-void robot::getIRinfo()
-{
-  Serial.println("リモコンの使用したいボタンを１回押してください");
-  getIRleader();
-  Serial.println("ボタンを離してください");
-  delay(4000);
-  Serial.println("リモコンの使用したいボタンを１回押してください");
-  getFramedata();
-  Serial.println("ボタンを離してください");
-  delay(4000);
-}
-
-void robot::getIRleader()
-{
-  while (digitalRead(IR1) == 1)
-  {
-    now1 = micros();
-  }
-  while (digitalRead(IR1) == 0)
-  {
-    last = micros();
-  }
-  leader = last - now1;
-  unsigned long last_leader = 0;
-  while (last_leader < 10000)
-  {
-    while (digitalRead(IR1) == 1)
-    {
-    }
-    while (digitalRead(IR1) == 0)
-    {
-      now2 = micros();
-    }
-    frame_num++;
-    while (digitalRead(IR1) == 1)
-    {
-      last = micros();
-    }
-    last_leader = last - now2;
-    frame_num++;
-  }
-  if (leader < 9200 && leader > 8800)
-  {
-    Serial.print("format :");
-    Serial.println("NEC");
-  }
-  Serial.print("frame number :");
-  Serial.println(frame_num - 2);
-}
-
-void robot::getFramedata()
-{
-  frame_num = frame_num + 4;
-  int long frame_data[frame_num];
-  int data_num = 0;
-  while (data_num <= frame_num)
-  {
-    while (digitalRead(IR1) == 1)
-    {
-      now1 = micros();
-    }
-    while (digitalRead(IR1) == 0)
-    {
-      last = micros();
-    }
-    frame_data[data_num] = last - now1;
-    data_num++;
-    now2 = last;
-    while (digitalRead(IR1) == 1)
-    {
-      last = micros();
-    }
-    now1 = micros();
-    frame_data[data_num] = last - now2;
-    data_num++;
-  }
-  for (int i = 2; i < frame_num - 4; i++)
-  {
-    frame_data[i] = roundOff(frame_data[i], 562);
-  }
-  Serial.print("Repeat type :");
-  if (frame_data[frame_num - 1] < 2400 && frame_data[frame_num - 1] > 1600)
-  {
-    Serial.println("0");
-  }
-  else
-  {
-    Serial.println("1");
-  }
-  Serial.print("frame data :");
-  Serial.print("{");
-  for (int j = 1; j < (frame_num - 4) / 2; j++)
-  {
-    if (frame_data[j * 2] == 1 && frame_data[(j * 2) + 1] == 1)
-    {
-      Serial.print("0,");
-    }
-    else if (frame_data[j * 2] == 1 && frame_data[(j * 2) + 1] == 3)
-    {
-      Serial.print("1,");
-    }
-    else
-    {
-      Serial.println("N/A,");
-      break;
-    }
-  }
-  Serial.println("}");
-  Serial.println("N/Aが含まれている場合、取得は失敗しています。初めからやり直してください");
-}
-
-
-int robot::irControl(int framedata, int *data1, int *data2, int *data3, int *data4, int *data5)
-{
-  unsigned long now1 = 0;
-  unsigned long now2 = 0;
-  unsigned long last1 = 0;
-  unsigned long last2 = 0;
-  unsigned long high = 0;
-  unsigned long low = 0;
-  int data_num = 0;
-  int datacheck[framenum] = {};
-  int loopbreak = 0;
-  int irData[framenum][framedata] = {{}};
-  for (int i = 0; i < framedata; i++)
-  {
-    irData[0][i] = data1[i];
-    irData[1][i] = data2[i];
-    irData[2][i] = data3[i];
-    irData[3][i] = data4[i];
-    irData[4][i] = data5[i];
-  }
-  int data[framedata] = {};
-
-  while (1)
-  {
-    while (digitalRead(IR3) == 1)
-    {
-      now1 = micros();
-      if (now1 - last2 > 100000)
-      {
-        loopbreak = 1;
-        break;
-      }
-    }
-    while (digitalRead(IR3) == 0)
-    {
-      last1 = micros();
-    }
-    high = roundOff(last1 - now1, 562);
-    now2 = last1;
-    while (digitalRead(IR3) == 1)
-    {
-      last2 = micros();
-      if (last2 - now2 > 100000)
-      {
-        loopbreak = 1;
-        break;
-      }
-    }
-    if (loopbreak == 1)
-    {
-      break;
-    }
-    now1 = last2;
-    low = roundOff(last2 - now2, 562);
-    if (high == 16 && low == 4)
-    {
-      for (int i = 0; i < framenum; i++)
-      {
-        if (datacheck[i] == 0)
-        {
-          for (int j = 16; j < framedata; j++)
-          { //NECformat専用
-            if (data[j] == irData[i][j])
-            {
-              datacheck[i]++;
-            }
-            else
-            {
-              datacheck[i] = 0;
-              break;
-            }
-          }
-        }
-      }
-      for (int i = 0; i < framenum; i++)
-      {
-        if (datacheck[i] == 16)
-        { 
-          return i+1;
-        }
-      }
-    }
-    else if (high == 1 && low == 1)
-    {
-      data[data_num] = 0;
-      data_num++;
-    }
-    else if (high == 1 && low == 3)
-    {
-      data[data_num] = 1;
-      data_num++;
-    }
-    else if (high == 16 && low == 8)
-    {
-      data_num = 0;
-      for (int i = 0; i < framedata; i++)
-      {
-        data[i] = 0;
-      }
-      for (int i = 0; i < framenum; i++)
-      {
-        datacheck[i] = 0;
-      }
-    }
-  }
-  return 0;
-}
-
-int robot::roundOff(float numerator, float denominator)
-{ 
-  float decimal = 0;
-  int integer = 0;
-  decimal = numerator / denominator;
-  integer = decimal;
-  if ((decimal - integer) >= 0.5)
-  {
-    integer = integer + 1;
-  }
-  return integer;
-}
-//ここまで
-*/
 
 void robot::motor(double spd1, double spd2, double spd3)
 {
-  int offtime = 0;
+  //int offtime = 0;
   static int mt_state[3];
   double mt_power[6];
 
@@ -276,7 +46,7 @@ void robot::motor(double spd1, double spd2, double spd3)
       mt_power[i * 2 + 1] = 0;
       if (mt_state[i] == ccw)
       {
-        offtime = 1;
+        //offtime = 1;
         mt_state[i] = cw;
       }
       mt_state[i] = 1;
@@ -287,7 +57,7 @@ void robot::motor(double spd1, double spd2, double spd3)
       mt_power[i * 2 + 1] = -spd[i];
       if (mt_state[i] == cw)
       {
-        offtime = 1;
+        //offtime = 1;
         mt_state[i] = ccw;
       }
     }
@@ -363,16 +133,16 @@ int robot::getIr(int num)
   switch (num)
   {
   case 1:
-    return ir1;
+    return _ir1;
     break;
   case 2:
-    return ir2;
+    return _ir2;
     break;
   case 3:
-    return ir3;
+    return _ir3;
     break;
   case 4:
-    return ir4;
+    return _ir4;
     break;
   default:
     return 0;
@@ -386,21 +156,21 @@ void robot::irUpdate()
   {
     if (digitalRead(IR1) == LOW)
     {
-      ir1++;
+      _ir1++;
     }
   }
   for (int i = 0; i < 500; i++)
   {
     if (digitalRead(IR2) == LOW)
     {
-      ir2++;
+      _ir2++;
     }
   }
   for (int i = 0; i < 500; i++)
   {
     if (digitalRead(IR3) == LOW)
     {
-      ir3++;
+      _ir3++;
     }
   }
 
@@ -408,21 +178,38 @@ void robot::irUpdate()
   {
     if (digitalRead(IR4) == LOW)
     {
-      ir4++;
+      _ir4++;
     }
   }
 }
-/*
-static void robot::interrupt()
-{
-  motor(0, 0, 0);
-  digitalWrite(LED, LOW);
-  //initComp = true;
-}*/
 
-void robot::initialize(void)
+double robot::getFlontAzim()
 {
-  //attachInterrupt(0, interrupt, LOW); 
+  return flontDeg;
+}
+
+double robot::getAzim()
+{
+  compass.read();
+  return compass.getAzimuth();
+}
+
+void interrupt()
+{
+  digitalWrite(mt1cw, LOW);
+  digitalWrite(mt1ccw, LOW);
+  digitalWrite(mt2cw, LOW);
+  digitalWrite(mt2ccw, LOW);
+  digitalWrite(mt3cw, LOW);
+  digitalWrite(mt3ccw, LOW); //つまりmotor(0, 0, 0)と同じ
+  //digitalWrite(LED, LOW);    //割り込み中はLED2が消えます。
+  digitalWrite(LED, HIGH); //割り込み中はLED2が点灯します。
+  initComp = true;
+}
+
+void robot::initialize()
+{
+  attachInterrupt(0, interrupt, LOW);
   pinMode(LED, OUTPUT);
   pinMode(IR1, INPUT);
   pinMode(IR2, INPUT);
@@ -442,4 +229,61 @@ void robot::initialize(void)
   digitalWrite(mt3ccw, LOW);
   Wire.begin();
   Serial.begin(9600);
+  compass.init();
+  boolean calibComp = false;
+  /*
+  while (!initComp)
+  {
+    unsigned long t = millis();
+    while (!calibComp)
+    {
+      //compass calibration
+      double calibData[3][2];
+      boolean changed = false;
+      double x, y = 0;
+      unsigned long t1, t2 = 0;
+      compass.read();
+      x = compass.getX();
+      y = compass.getY();
+      if (x < calibData[0][0])
+      {
+        calibData[0][0] = x;
+        changed = true;
+      }
+      if (x > calibData[0][1])
+      {
+        calibData[0][1] = x;
+        changed = true;
+      }
+
+      if (y < calibData[1][0])
+      {
+        calibData[1][0] = y;
+        changed = true;
+      }
+      if (y > calibData[1][1])
+      {
+        calibData[1][1] = y;
+        changed = true;
+      }
+      if (changed)
+      {
+        t1 = millis();
+      }
+      t2 = millis();
+      if ((t - t2) > 8000)
+      {
+        if ((t2 - t1) > 5000)
+        {
+          compass.setCalibration(calibData[0][0], calibData[0][1], calibData[1][0], calibData[1][1], 0, 0);
+          calibComp = true;
+        }
+      }
+    }
+    digitalWrite(LED, HIGH); //calibration complete
+  }
+  */
+  compass.setCalibration(_minX, _maxX, _minY, _maxY, 0, 0);
+  compass.read();
+  flontDeg = compass.getAzimuth();
 }
