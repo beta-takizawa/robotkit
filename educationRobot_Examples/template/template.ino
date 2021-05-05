@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <robot.h>
-robot ir(-736, 1903, -1752, 1475); //ここは任意で書き変えてください。
 
+robot ir(-736, 1903, -1752, 1475); //ここは任意で書き変えてください。
 
 void setup()
 {

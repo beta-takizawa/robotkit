@@ -31,6 +31,8 @@ robot::robot(int minX, int maxX, int minY, int maxY)
   _minY = minY;
 }
 
+robot::robot();
+
 void robot::motor(double spd1, double spd2, double spd3)
 {
   //int offtime = 0;

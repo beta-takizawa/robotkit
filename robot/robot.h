@@ -5,6 +5,7 @@ class robot
 {
 public:
     robot(int minX, int maxX, int minY, int maxY);
+    robot();
     double dist();
     void motor(double spd1, double spd2, double spd3);
     int getIr(int num);
