@@ -1,7 +1,6 @@
-#include "robot.h"
+#include "takiroboF1.h"
 #include <avr/io.h>
 #include <Wire.h>
-#include <QMC5883LCompass.h>
 
 #define mt1cw 3
 #define mt1ccw 5
@@ -20,18 +19,23 @@
 #define IR4 14
 #define LED 4
 #define framenum 5
-boolean initComp = false;
-QMC5883LCompass compass;
+#define addr 0x0D
 
-robot::robot(int minX, int maxX, int minY, int maxY)
+boolean initComp = false;
+
+robot::takiroboF1(float MedianX, float MedianY, float Scale)
 {
-  _maxX = maxX;
-  _minX = minX;
-  _maxY = maxY;
-  _minY = minY;
+  medianX = medianY;
+  medianY = MedianY;
+  scale = scale;
 }
 
-robot::robot();
+robot::takiroboF1()
+{
+  medianX = 0;
+  medianY = 0;
+  scale = 1;
+}
 
 void robot::motor(double spd1, double spd2, double spd3)
 {
@@ -119,15 +123,18 @@ double robot::dist()
 
 int robot::getLine(int num)
 {
+  return line[num - 1];
+}
+
+void robot::lineUpdate()
+{
   Wire.requestFrom(8, 4);
-  int line[4];
   int i = 0;
   while (Wire.available())
   {
     line[i] = Wire.read();
     i++;
   }
-  return line[num - 1];
 }
 
 int robot::getIr(int num)
@@ -185,15 +192,84 @@ void robot::irUpdate()
   }
 }
 
-double robot::getFlontAzim()
+float robot::getFlontAzim()
 {
   return flontDeg;
 }
 
-double robot::getAzim()
+float robot::getAzim()
 {
-  compass.read();
-  return compass.getAzimuth();
+  Wire.beginTransmission(addr);
+  Wire.write(0x00);
+  Wire.endTransmission();
+  Wire.requestFrom(addr, 6);
+  while (Wire.available())
+  {
+    rawData[0] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    rawData[1] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+    rawData[2] = (int)(int16_t)(Wire.read() | Wire.read() << 8);
+  }
+  int data[2] = {};
+  data[0] = (rawData[0] - medianX);
+  data[1] = (rawData[1] - medianY) * scale;
+  //Serial.println(atan2(data[1], data[0]) * 180.0 / PI);
+  return atan2(data[1], data[0]) * 180.0 / PI;
+}
+
+void robot::calibCompass()
+{
+  int start = millis();
+  int finish;
+  int nowCalib = 0;
+  float median[2] = {};
+  float calibData[4] = {};
+  float scale = 0;
+  while (1)
+  {
+    dataGet();
+    delay(200);
+    Serial.println("robot is calibrating now");
+    if (rawData[0] < calibData[0])
+    {
+      calibData[0] = rawData[0];
+      nowCalib = 1;
+      //Xmin
+    }
+    if (rawData[0] > calibData[1])
+    {
+      calibData[1] = rawData[0];
+      nowCalib = 1;
+      //Xmax
+    }
+    if (rawData[1] < calibData[2])
+    {
+      calibData[2] = rawData[1];
+      nowCalib = 1;
+      //Ymin
+    }
+    if (rawData[1] > calibData[3])
+    {
+      calibData[3] = rawData[1];
+      nowCalib = 1;
+      //Ymax
+    }
+    finish = millis();
+    if ((finish - start) > 8000 && nowCalib == 0)
+    {
+      break;
+    }
+    nowCalib = 0;
+  }
+  median[0] = (calibData[0] + calibData[1]) / 2;
+  median[1] = (calibData[2] + calibData[3]) / 2;
+  scale = ((calibData[1] - calibData[0]) / (calibData[3] - calibData[2]));
+  Serial.print("(");
+  Serial.print(median[0]);
+  Serial.print(",");
+  Serial.print(median[1]);
+  Serial.print(",");
+  Serial.print(scale);
+  Serial.print(")");
 }
 
 void interrupt()
@@ -231,61 +307,15 @@ void robot::initialize()
   digitalWrite(mt3ccw, LOW);
   Wire.begin();
   Serial.begin(9600);
-  compass.init();
+  Wire.beginTransmission(addr);
+  Wire.write(0x0B);
+  Wire.write(0x01);
+  Wire.endTransmission();
+  Wire.beginTransmission(addr);
+  Wire.write(0x09);
+  Wire.write(0x1D);
+  Wire.endTransmission();
   boolean calibComp = false;
-  /*
-  while (!initComp)
-  {
-    unsigned long t = millis();
-    while (!calibComp)
-    {
-      //compass calibration
-      double calibData[3][2];
-      boolean changed = false;
-      double x, y = 0;
-      unsigned long t1, t2 = 0;
-      compass.read();
-      x = compass.getX();
-      y = compass.getY();
-      if (x < calibData[0][0])
-      {
-        calibData[0][0] = x;
-        changed = true;
-      }
-      if (x > calibData[0][1])
-      {
-        calibData[0][1] = x;
-        changed = true;
-      }
-
-      if (y < calibData[1][0])
-      {
-        calibData[1][0] = y;
-        changed = true;
-      }
-      if (y > calibData[1][1])
-      {
-        calibData[1][1] = y;
-        changed = true;
-      }
-      if (changed)
-      {
-        t1 = millis();
-      }
-      t2 = millis();
-      if ((t - t2) > 8000)
-      {
-        if ((t2 - t1) > 5000)
-        {
-          compass.setCalibration(calibData[0][0], calibData[0][1], calibData[1][0], calibData[1][1], 0, 0);
-          calibComp = true;
-        }
-      }
-    }
-    digitalWrite(LED, HIGH); //calibration complete
-  }
-  */
-  compass.setCalibration(_minX, _maxX, _minY, _maxY, 0, 0);
-  compass.read();
-  flontDeg = compass.getAzimuth();
+  getAzim();
+  flontDeg = getAzim();
 }
